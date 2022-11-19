@@ -1,0 +1,44 @@
+name: Update version
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+
+      - name: Fetch release version
+        id: fetch-release
+        run: |
+          wget https://git.alpinelinux.org/aports/plain/community/keepalived/APKBUILD?h=3.16-stable -O APKBUILD
+          source APKBUILD
+          rm -f APKBUILD
+          KEEPALIVED_VERSION="${pkgver}"
+          if [ -n "$KEEPALIVED_VERSION" ]; then
+            echo "Found keepalived release $KEEPALIVED_VERSION"
+            echo "Updated APP_VERSION with $KEEPALIVED_VERSION in .github/workflows/docker-publish.yml"
+            sed -ri "s/^(\s*)(APP_VERSION\s*:\s*.*\s*$)/\1APP_VERSION: \"$KEEPALIVED_VERSION\"/" .github/workflows/docker-publish.yml
+            echo version=$KEEPALIVED_VERSION >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for modified files
+        id: git-check
+        run: echo modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true") >> $GITHUB_OUTPUT
+
+      - name: Commit latest release version
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/docker-publish.yml
+          git commit -m "ci(docker-publish): update keepalived to ${{ steps.fetch-release.outputs.version }}"
+          git tag "v${{ steps.fetch-release.outputs.version }}"
+          git push
+          git push origin "v${{ steps.fetch-release.outputs.version }}"

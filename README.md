@@ -1,6 +1,6 @@
 # Docker container for keepalived
 
-[![Docker Automated build](https://img.shields.io/badge/docker%20build-automated-brightgreen)](https://github.com/shawly/docker-keepalived/actions) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/shawly/docker-keepalived/Docker)](https://github.com/shawly/docker-keepalived/actions) [![Docker Pulls](https://img.shields.io/docker/pulls/shawly/keepalived)](https://hub.docker.com/r/shawly/keepalived) [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/keepalived/latest)](https://hub.docker.com/r/shawly/keepalived) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-keepalived.svg)](https://github.com/shawly/docker-keepalived/releases/latest)
+[![Docker Automated build](https://img.shields.io/badge/docker%20build-automated-brightgreen)](https://github.com/shawly/docker-keepalived/actions) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/shawly/docker-keepalived/Docker)](https://github.com/shawly/docker-keepalived/actions) [![Docker Pulls](https://img.shields.io/docker/pulls/shawly/keepalived)](https://hub.docker.com/r/shawly/keepalived) [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/keepalived/latest)](https://hub.docker.com/r/shawly/keepalived)
 
 This is a Docker container for keepalived.
 
@@ -29,7 +29,7 @@ This is a Docker container for keepalived.
 
 <!-- supported tags will be auto updated through workflows! -->
 
-- `latest`, `v2`, `v2.2`, `v2.2.7`, `v2.2.7-r1` <!-- latest tag -->
+- `latest`, `v2`, `v2.2`, `v2.2.7` <!-- latest tag -->
 
 ## Supported Architectures
 

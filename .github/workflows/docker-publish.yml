@@ -1,0 +1,179 @@
+name: Docker
+
+on:
+  push:
+    # Publish `main` as Docker `edge` image.
+    branches:
+      - main
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+      - v*
+
+  # Run tests for any PRs.
+  pull_request:
+
+env:
+  IMAGE_NAME: keepalived
+  IMAGE_TITLE: keepalived
+  IMAGE_DESCRIPTION: Docker container for keepalived
+  APP_VERSION: "edge"
+
+jobs:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        id: buildx_test
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.test-buildx-cache
+          key: ${{ runner.os }}-test-buildx-${{ env.APP_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-test-buildx-${{ env.APP_VERSION }}
+            ${{ runner.os }}-test-buildx-
+
+      - name: Test build
+        id: docker_build_test
+        uses: docker/build-push-action@v3
+        with:
+          builder: ${{ steps.buildx_test.outputs.name }}
+          context: .
+          platforms: linux/amd64
+          push: false
+          cache-from: type=local,src=/tmp/.test-buildx-cache
+          cache-to: type=local,dest=/tmp/.test-buildx-cache-new
+
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.test-buildx-cache
+          mv /tmp/.test-buildx-cache-new /tmp/.test-buildx-cache
+
+  # Build images.
+  build:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge,branch=main
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_TITLE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ env.APP_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ env.APP_VERSION }}
+            ${{ runner.os }}-buildx-
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v3
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Checkout main
+        if: startsWith(github.ref, 'refs/tags')
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Update README.md
+        if: startsWith(github.ref, 'refs/tags')
+        id: update-readme
+        run: |
+          # Build tags for README.md
+          echo '${{ steps.meta.outputs.json }}' | tee meta.json
+          README_TAGS="$(jq -r -e '.tags | reverse | map(. | sub(".+:(?<tag>.+)"; "`\(.tag)`")) | join(", ")' meta.json)"
+
+          # Replace supported latest tags in README.md
+          if [ -n "${README_TAGS:-}" ] && [ "${README_TAGS}" != "null" ]; then
+              sed -i '/- `.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
+          fi
+
+          echo "tags=${README_TAGS}" >> $GITHUB_OUTPUT
+
+      - name: Check for modified files
+        if: startsWith(github.ref, 'refs/tags')
+        id: git-check
+        run: echo modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true") >> $GITHUB_OUTPUT
+
+      - name: Commit updated README.md
+        if: startsWith(github.ref, 'refs/tags') && steps.git-check.outputs.modified == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m "docs(README): update supported tags [skip ci]"
+          git push
