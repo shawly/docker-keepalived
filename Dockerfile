@@ -72,6 +72,16 @@ RUN \
   echo "Cleaning up directories..." && \
     rm -rf /tmp/*
 
+ENV TZ="Etc/UTC" \
+    KEEPALIVED_VIRTUAL_IP="" \
+    KEEPALIVED_VIRTUAL_MASK="" \
+    KEEPALIVED_CHECK_IP="any" \
+    KEEPALIVED_CHECK_PORT="" \
+    KEEPALIVED_VRID="" \
+    KEEPALIVED_INTERFACE="eth0" \
+    KEEPALIVED_CHECK_SCRIPT="" \
+    KEEPALIVED_CUSTOM_CONFIG=""
+
 # Add files
 COPY rootfs/ /
 
