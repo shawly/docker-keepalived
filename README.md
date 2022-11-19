@@ -29,7 +29,7 @@ This is a Docker container for keepalived.
 
 <!-- supported tags will be auto updated through workflows! -->
 
-- `latest`, `v2`, `v2.2`, `v2.2.7` <!-- latest tag -->
+- `latest`, `2`, `2.2`, `2.2.7`, `latest`, `2`, `2.2`, `2.2.7` <!-- latest tag -->
 
 ## Supported Architectures
 
