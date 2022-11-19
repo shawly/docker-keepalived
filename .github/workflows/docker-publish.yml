@@ -155,11 +155,12 @@ jobs:
         run: |
           # Build tags for README.md
           echo '${{ steps.meta.outputs.json }}' | tee meta.json
-          README_TAGS="$(jq -r -e '.tags | reverse | map(. | sub(".+:(?<tag>.+)"; "`\(.tag)`")) | join(", ")' meta.json)"
+          README_TAGS="$(jq -r -e '.tags | map(. | sub(".+:(?<tag>.+)"; "`\(.tag)`")) | unique | reverse | join(", ")' meta.json)"
+          echo "Updating supported tags in readme with ${README_TAGS}"
 
           # Replace supported latest tags in README.md
           if [ -n "${README_TAGS:-}" ] && [ "${README_TAGS}" != "null" ]; then
-              sed -i '/- `.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
+              sed -i '/- `latest`.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
           fi
 
           echo "tags=${README_TAGS}" >> $GITHUB_OUTPUT
