@@ -6,7 +6,9 @@ This is a Docker container for keepalived.
 
 ---
 
-[![keepalived](https://dummyimage.com/400x110/ffffff/575757&text=keepalived)](https://github.com/acassen/keepalived)
+[![keepalived](/docs/img/keepalived-logo.png)](https://github.com/acassen/keepalived)
+
+[Homepage](https://www.keepalived.org/)
 
 ---
 
@@ -23,6 +25,7 @@ This is a Docker container for keepalived.
     - [Changing Parameters of a Running Container](#changing-parameters-of-a-running-container)
   - [Docker Compose File](#docker-compose-file)
   - [Docker Image Update](#docker-image-update)
+  - [Using a custom keepalived.conf](#using-a-custom-keepalived-conf)
   - [Credits](#credits)
 
 ## Supported tags
@@ -143,7 +146,7 @@ services:
       KEEPALIVED_CHECK_PORT: 80
       KEEPALIVED_VRID: 150
       KEEPALIVED_INTERFACE: eth0
-    net: host
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_BROADCAST
@@ -174,13 +177,15 @@ docker rm keepalived
 
 4. Start the container using the `docker run` command.
 
-## Using a custom configuration
+## Using a custom keepalived.conf
 
 If you want to mount a custom configuration, you need to set the environment variable `KEEPALIVED_CUSTOM_CONFIG=true`.
 
-This will stop the `init-kepalived-config` service from applying the values from other variables and checking them for validity.
+This will stop the `init-kepalived-config` service from applying the values from environment variables and checking them for validity.
 
-This is for advanced users only.
+This means you need to set IPs, scripts etc. in your custom config!
+
+You can find a lot of example configurations [here](https://github.com/acassen/keepalived/tree/master/doc/samples).
 
 ### Example with `docker run`
 
@@ -210,7 +215,7 @@ services:
     environment:
       TZ: Europe/Berlin
       KEEPALIVED_CUSTOM_CONFIG: "true"
-    net: host
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_BROADCAST
@@ -222,3 +227,4 @@ services:
 ## Credits
 
 - [NeoAssist/docker-keepalived](https://github.com/NeoAssist/docker-keepalived) for their scripts I reused
+- [acassen/keepalived](https://github.com/acassen/keepalived) obviously!
