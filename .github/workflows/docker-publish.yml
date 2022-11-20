@@ -163,6 +163,8 @@ jobs:
               sed -i '/- `latest`.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
           fi
 
+          rm -rf meta.json
+
       - name: Update README.md with edge tags
         if: startsWith(github.ref, 'refs/heads')
         run: |
@@ -175,6 +177,8 @@ jobs:
           if [ -n "${README_TAGS:-}" ] && [ "${README_TAGS}" != "null" ]; then
               sed -i '/- `edge`.*<!-- edge tag -->/c- '"${README_TAGS}"' <!-- edge tag -->' README.md
           fi
+
+          rm -rf meta.json
 
       - name: Check for modified files
         id: git-check

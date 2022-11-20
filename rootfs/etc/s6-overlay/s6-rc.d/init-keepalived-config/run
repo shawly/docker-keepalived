@@ -32,7 +32,7 @@ else
         exit 1
     fi
     # Check if given interface is available
-    available_interfaces=( $(ip -br l | awk '$1 !~ "lo|vir|wl" { print $1}') )
+    available_interfaces=( $(ip -br l | awk '$1 !~ "lo|vir|docker0|vethd" { print $1}') )
     if [[ ! " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " ]]; then
         echo "The KEEPALIVED_INTERFACE environment variable contains a non existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[@]}). Exiting..."
         exit 1
