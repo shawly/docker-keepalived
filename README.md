@@ -2,13 +2,11 @@
 
 [![Docker Automated build](https://img.shields.io/badge/docker%20build-automated-brightgreen)](https://github.com/shawly/docker-keepalived/actions) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/shawly/docker-keepalived/Docker)](https://github.com/shawly/docker-keepalived/actions) [![Docker Pulls](https://img.shields.io/docker/pulls/shawly/keepalived)](https://hub.docker.com/r/shawly/keepalived) [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/keepalived/latest)](https://hub.docker.com/r/shawly/keepalived)
 
-This is a Docker container for keepalived.
+This is a Docker container for [keepalived](https://github.com/acassen/keepalived).
 
 ---
 
-[![keepalived](/docs/img/keepalived-logo.png)](https://github.com/acassen/keepalived)
-
-[Homepage](https://www.keepalived.org/)
+[![keepalived](/docs/img/keepalived-logo.png)](https://www.keepalived.org/)
 
 ---
 
@@ -334,7 +332,7 @@ services:
 
 ## Support
 
-[Issues](/issues) are disabled for now, since this image is still a work in progress.
+[Issues](https://github.com/shawly/docker-keepalived/issues) are disabled for now, since this image is still a work in progress.
 
 Feel free to open a pull request if you want to fix any bugs and help maintain this image. Otherwise you are out of luck (for now at least).
 
