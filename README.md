@@ -25,14 +25,30 @@ This is a Docker container for keepalived.
     - [Changing Parameters of a Running Container](#changing-parameters-of-a-running-container)
   - [Docker Compose File](#docker-compose-file)
   - [Docker Image Update](#docker-image-update)
-  - [Using a custom keepalived.conf](#using-a-custom-keepalived-conf)
+  - [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)
+  - [Sending email notifications](#sending-email-notifications)
+  - [Support](#support)
   - [Credits](#credits)
 
 ## Supported tags
 
 <!-- supported tags will be auto updated through workflows! -->
 
+- `edge` <!-- edge tag -->
 - `latest`, `2`, `2.2`, `2.2.7` <!-- latest tag -->
+
+## Image Variants
+
+This image comes in two different variants.
+
+### `shawly/keepalived:<version>`
+
+This image represents a stable or considered "working" build of keepalived and should be preferred.
+
+### `shawly/keepalived:edge-<commitsha>`
+
+This image represents a development state of this repo. It contains the latest features but is not considered stable, it can contain bugs and breaking changes.
+If you are not sure what to choose, use the `latest` image or a version like `2` or `2.2`.
 
 ## Supported Architectures
 
@@ -52,7 +68,7 @@ and parameters should be adjusted to your need.
 
 Launch the keepalived docker container with the following command:
 
-```
+```bash
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
@@ -89,17 +105,17 @@ To customize some properties of the container, the following environment
 variables can be passed via the `-e` parameter (one for each variable). Value
 of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 
-| Variable                   | Description                                                                                                                                                                                                                                         | Default   |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| `TZ`                       | Timezone of the container. Timezone can also be set by mapping `/etc/localtime` between the host and the container.                                                                                                                                 | `Etc/UTC` |
-| `KEEPALIVED_VIRTUAL_IP`    | Floating IP that is used by keepalived                                                                                                                                                                                                              | undefined |
-| `KEEPALIVED_VIRTUAL_MASK`  | Subnet mask of the floating IP (e.g. `24`)                                                                                                                                                                                                          | undefined |
-| `KEEPALIVED_CHECK_IP`      | Set this to a specific IP if you only want to check `KEEPALIVED_CHECK_PORT` on the given IP address                                                                                                                                                 | `any`     |
-| `KEEPALIVED_CHECK_PORT`    | Set this to the port you want to check                                                                                                                                                                                                              | undefined |
-| `KEEPALIVED_VRID`          | The virtual router id                                                                                                                                                                                                                               | undefined |
-| `KEEPALIVED_INTERFACE`     | Interface in your container usually `eth0`                                                                                                                                                                                                          | `eth0`    |
-| `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                            | undefined |
-| `KEEPALIVED_CUSTOM_CONFIG` | If you set this to `true` the configuration `/etc/keepalived/keepalived.conf` will not be set up automatically. Use this if you want to customize your keepalived.conf manually (see [Using a custom configuration](#using-a-custom-configuration)) | `false`   |
+| Variable                   | Description                                                                                                                                                                                                                                            | Default   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| `TZ`                       | Timezone of the container. Timezone can also be set by mapping `/etc/localtime` between the host and the container.                                                                                                                                    | `Etc/UTC` |
+| `KEEPALIVED_VIRTUAL_IP`    | Floating IP that is used by keepalived                                                                                                                                                                                                                 | undefined |
+| `KEEPALIVED_VIRTUAL_MASK`  | Subnet mask of the floating IP (e.g. `24`)                                                                                                                                                                                                             | undefined |
+| `KEEPALIVED_CHECK_IP`      | Set this to a specific IP if you only want to check `KEEPALIVED_CHECK_PORT` on the given IP address                                                                                                                                                    | `any`     |
+| `KEEPALIVED_CHECK_PORT`    | Set this to the port you want to check                                                                                                                                                                                                                 | undefined |
+| `KEEPALIVED_VRID`          | The virtual router id                                                                                                                                                                                                                                  | undefined |
+| `KEEPALIVED_INTERFACE`     | Interface in your container usually `eth0`                                                                                                                                                                                                             | `eth0`    |
+| `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                               | undefined |
+| `KEEPALIVED_CUSTOM_CONFIG` | If you set this to `true` the configuration `/etc/keepalived/keepalived.conf` will not be set up automatically. Use this if you want to customize your keepalived.conf manually (see [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)) | `false`   |
 
 ### Changing Parameters of a Running Container
 
@@ -191,7 +207,7 @@ You can find a lot of example configurations [here](https://github.com/acassen/k
 
 Create a `keepalived.conf` with your configuration and mount it to `/etc/keepalived/keepalived.conf`. The file needs to exist before mounting!
 
-```
+```bash
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
@@ -199,7 +215,7 @@ docker run -d \
     --net host \
     -e TZ=Europe/Berlin \
     -e KEEPALIVED_CUSTOM_CONFIG=true \
-    -v "$(pwd)/keepalived.conf:/etc/keepalived/keepalived.conf" \
+    -v "$(pwd)/keepalived.conf:/etc/keepalived/keepalived.conf:ro" \
     shawly/keepalived
 ```
 
@@ -223,6 +239,104 @@ services:
       # mount the conf as read only, so it can't be modified from within the container for additional security
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
 ```
+
+## Sending email notifications
+
+This container contains `msmtp` and `mailx` so you can send email notifications via keepalived.
+
+For that you need to mount msmtprc config in the container under `/root/.msmtprc`. Create a file `msmtprc`:
+
+```
+# Set default values for all following accounts.
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+syslog         on
+
+# Gmail
+account        gmail
+host           smtp.gmail.com
+port           587
+from           yourgmail+keepalived@gmail.com
+user           yourgmail@gmail.com
+password       <your app password>
+
+# Set a default account
+account default : gmail
+aliases        /etc/aliases
+```
+
+And setup an alias for your root user in `/etc/aliases` in the container. Create a file `mail-aliases`:
+
+```
+root: yourgmail+keepalived@gmail.com
+default: yourgmail+keepalived@gmail.com
+```
+
+I recommend to use the `+keepalived` alias so you can easily filter emails, but it's up to you. Your mail provider/server should support this though if you are not using gmail.
+
+The default config doesn't have any mail notifications configured, so you are requried to create and use a custom `keepalived.conf` [as described above](#using-a-custom-keepalivedconf).
+
+To use the `msmtpd` that pipes mails to `msmtp`, you need to send your mails to `localhost` on port `25` in your `keepalived.conf`, like this:
+
+```
+global_defs {
+  notification_email {
+    acassen
+  }
+  notification_email_from yourgmail+keepalived@gmail.com
+  smtp_server 127.0.0.1 25
+  smtp_connect_timeout 30
+  router_id EXAMPLE
+}
+```
+
+**Note:** The mail server only listens on `127.0.0.1` port `25` by default which should not be changed and port `25` should never be opened to the public!  
+**NEVER** configure your mail server directly in the `keepalived.conf`! It has no support for encryption or any security features, that's why you need to pipe your e-mails through msmtp which act's as a relay and supports TLS/SSL.
+
+### Example with `docker run`
+
+```bash
+docker run -d \
+    --name=keepalived \
+    --cap-add=NET_ADMIN \
+    --cap-add=NET_BROADCAST \
+    --net host \
+    -e TZ=Europe/Berlin \
+    -e KEEPALIVED_CUSTOM_CONFIG=true \
+    -v "$(pwd)/keepalived.conf:/etc/keepalived/keepalived.conf:ro" \
+    -v "$(pwd)/msmtprc:/root/.msmptrc:ro" \
+    -v "$(pwd)/mail-aliases:/etc/aliases:ro" \
+    shawly/keepalived
+```
+
+### Example `docker-compose.yml`
+
+```yaml
+version: "3"
+services:
+  keepalived:
+    image: shawly/keepalived
+    environment:
+      TZ: Europe/Berlin
+      KEEPALIVED_CUSTOM_CONFIG: "true"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+    volumes:
+      # mount the files as read only, so it can't be modified from within the container for additional security
+      - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
+      - "./msmtprc:/root/.msmptrc:ro"
+      - "./mail-aliases:/etc/aliases:ro"
+```
+
+## Support
+
+[Issues](/issues) are disabled for now, since this image is still a work in progress.
+
+Feel free to open a pull request if you want to fix any bugs and help maintain this image. Otherwise you are out of luck (for now at least).
 
 ## Credits
 

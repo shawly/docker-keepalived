@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: keepalived
   IMAGE_TITLE: keepalived
   IMAGE_DESCRIPTION: Docker container for keepalived
-  APP_VERSION: "2.2.7"
+  APP_VERSION: "edge"
 
 jobs:
   # Run tests.
@@ -104,6 +104,8 @@ jobs:
             ${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }},prefix=edge-,format=long
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }},prefix=edge-,format=short
             type=edge,branch=main
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -144,14 +146,12 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Checkout main
-        if: startsWith(github.ref, 'refs/tags')
         uses: actions/checkout@v3
         with:
           ref: main
 
-      - name: Update README.md
+      - name: Update README.md with latest tags
         if: startsWith(github.ref, 'refs/tags')
-        id: update-readme
         run: |
           # Build tags for README.md
           echo '${{ steps.meta.outputs.json }}' | tee meta.json
@@ -163,15 +163,25 @@ jobs:
               sed -i '/- `latest`.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
           fi
 
-          echo "tags=${README_TAGS}" >> $GITHUB_OUTPUT
+      - name: Update README.md with edge tags
+        if: startsWith(github.ref, 'refs/heads')
+        run: |
+          # Build tags for README.md
+          echo '${{ steps.meta.outputs.json }}' | tee meta.json
+          README_TAGS="$(jq -r -e '.tags | map(. | sub(".+:(?<tag>.+)"; "`\(.tag)`")) | unique | reverse | join(", ")' meta.json)"
+          echo "Updating supported tags in readme with ${README_TAGS}"
+
+          # Replace supported latest tags in README.md
+          if [ -n "${README_TAGS:-}" ] && [ "${README_TAGS}" != "null" ]; then
+              sed -i '/- `edge`.*<!-- edge tag -->/c- '"${README_TAGS}"' <!-- edge tag -->' README.md
+          fi
 
       - name: Check for modified files
-        if: startsWith(github.ref, 'refs/tags')
         id: git-check
         run: echo modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true") >> $GITHUB_OUTPUT
 
       - name: Commit updated README.md
-        if: startsWith(github.ref, 'refs/tags') && steps.git-check.outputs.modified == 'true'
+        if: steps.git-check.outputs.modified == 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'

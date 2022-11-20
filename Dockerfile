@@ -60,15 +60,22 @@ RUN \
   echo "Installing dependencies..." && \
     apk add --update --no-cache \
       bash \
+      ca-certificates \
+      curl \
       grep \
       iproute2 \
       keepalived \
+      mailx \
+      msmtp \
       sed \
       tcpdump \
       tzdata && \
   echo "Extracting s6 overlay..." && \
     tar -C / -Jxpf /tmp/s6-overlay.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
+  echo "Linking sendmail for msmtp..." && \
+    ln -sf /usr/bin/msmtp /usr/bin/sendmail && \
+    ln -sf /usr/bin/msmtp /usr/sbin/sendmail && \
   echo "Cleaning up directories..." && \
     rm -rf /tmp/*
 

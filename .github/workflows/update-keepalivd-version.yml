@@ -39,6 +39,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .github/workflows/docker-publish.yml
           git commit -m "ci(docker-publish): update keepalived to ${{ steps.fetch-release.outputs.version }}"
+          git tag -d "v${{ steps.fetch-release.outputs.version }}" || true
           git tag "v${{ steps.fetch-release.outputs.version }}"
           git push
-          git push origin "v${{ steps.fetch-release.outputs.version }}"
+          git push --force origin "v${{ steps.fetch-release.outputs.version }}"
