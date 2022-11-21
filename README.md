@@ -25,6 +25,7 @@ This is a Docker container for [keepalived](https://github.com/acassen/keepalive
   - [Docker Image Update](#docker-image-update)
   - [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)
   - [Sending email notifications](#sending-email-notifications)
+  - [Controlling the docker daemon](#controlling-the-docker-daemon)
   - [Support](#support)
   - [Credits](#credits)
 
@@ -328,6 +329,120 @@ services:
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
       - "./msmtprc:/root/.msmptrc:ro"
       - "./mail-aliases:/etc/aliases:ro"
+```
+
+## Controlling the Docker daemon
+
+If you want to control containers on your host, you can mount `/var/run/docker.sock` into your `keepalived` container.
+
+This will allow you to take control of the containers on your host via `notify` scripts defined in your `keepalived.conf`.
+
+An example `notify` script:
+
+```bash
+#!/usr/bin/env bash
+
+TYPE=$1
+NAME=$2
+STATE=$3
+
+nginx_start () {
+  docker start nginx
+}
+
+nginx_stop () {
+  docker stop nginx
+}
+
+logger "starting nginx notify"
+case $STATE in
+     "MASTER")
+        touch "/etc/keepalived/MASTER"
+        # mark node as master and start Nginx, if it is not running. Do nothing, if Nginx is ok
+        logger "MASTER state"
+        docker ps -f name=nginx | grep nginx >/dev/null 2>&1
+        NGINX_RUN_STATE=$?
+        if [ "$NGINX_RUN_STATE" -eq 0 ]; then
+          logger "nginx is RUNNING, no action necessary"
+        else
+          logger "nginx is NOT RUNNING, starting nginx"
+          nginx_start
+        fi
+        exit 0
+        ;;
+     "BACKUP")
+        rm "/etc/keepalived/MASTER"
+
+        logger "nginx BACKUP state"
+        if [ "$(docker inspect -f "{{.State.Status}}" nginx)" == "running" ] ; then
+          logger "nginx is RUNNING, stopping"
+          nginx_stop
+        fi
+        exit 0
+       ;;
+     "FAULT")
+        rm "/etc/keepalived/MASTER"
+
+        logger "FAULT state, stopping Nginx"
+        if [ "$(docker inspect -f "{{.State.Status}}" nginx)" == "running" ] ; then
+          logger "nginx is RUNNING, stopping"
+          nginx_stop
+        fi
+        exit 0
+     ;;
+       *) logger "nginx unknown state"
+       exit 1
+       ;;
+esac
+```
+
+Define it like this in your `keepalived.conf`:
+
+```
+vrrp_instance NGINX {
+  ...
+  notify /root/keepalived/notify_nginx.sh
+```
+
+Now mount the `docker.sock` and your script in your containers.
+
+If your container is using a macvlan network you can also use `docker network connect <your macvlan net>` and `docker network disconnect <your macvlan net>` for joining and leaving your macvlan network with a notify script. That way you can keep the container running in the background. But you probably need to bind your application to all interfaces (e.g. `0.0.0.0`).
+
+### Example with `docker run`
+
+```bash
+docker run -d \
+    --name=keepalived \
+    --cap-add=NET_ADMIN \
+    --cap-add=NET_BROADCAST \
+    --net host \
+    -e TZ=Europe/Berlin \
+    -e KEEPALIVED_CUSTOM_CONFIG=true \
+    -v "$(pwd)/keepalived.conf:/etc/keepalived/keepalived.conf:ro" \
+    -v "$(pwd)/notify_nginx.sh:/root/keepalived/notify_nginx.sh:ro" \
+    -v "/var/run/docker.sock:/var/run/docker.sock:ro" \
+    shawly/keepalived
+```
+
+### Example `docker-compose.yml`
+
+```yaml
+version: "3"
+services:
+  keepalived:
+    image: shawly/keepalived
+    environment:
+      TZ: Europe/Berlin
+      KEEPALIVED_CUSTOM_CONFIG: "true"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+    volumes:
+      # mount the files as read only, so it can't be modified from within the container for additional security
+      - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
+      - "./notify_nginx.sh:/root/keepalived/notify_nginx.sh:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
 ```
 
 ## Support
