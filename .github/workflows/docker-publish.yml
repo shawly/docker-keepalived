@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: keepalived
   IMAGE_TITLE: keepalived
   IMAGE_DESCRIPTION: Docker container for keepalived
-  APP_VERSION: "2.2.7"
+  APP_VERSION: "edge"
 
 jobs:
   # Run tests.

@@ -62,8 +62,11 @@ RUN \
       bash \
       ca-certificates \
       curl \
+      docker-cli \
+      docker-cli-compose \
       grep \
       iproute2 \
+      ipset \
       keepalived \
       mailx \
       msmtp \
