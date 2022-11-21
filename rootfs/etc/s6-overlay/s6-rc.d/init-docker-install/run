@@ -1,0 +1,17 @@
+#!/command/with-contenv bash
+
+if [[ -n "${DOCKER_HOST}" ]]; then
+  echo "Detected DOCKER_HOST variable, installing docker-cli..."
+  export INSTALL_DOCKER="true"
+elif [[ -S "/var/run/docker.sock" ]]; then
+  echo "Detected /var/run/docker.sock mount, installing docker-cli..."
+  export INSTALL_DOCKER="true"
+fi
+
+if [[ "${INSTALL_DOCKER}" == "true" ]]; then
+  apk add --update --no-cache \
+    docker-cli \
+    docker-cli-compose
+  
+  echo "Installed docker-cli!"
+fi

@@ -1,0 +1,17 @@
+#!/command/with-contenv bash
+
+if [[ -f "/root/.msmtprc" ]]; then
+  echo "Detected /root/.msmtprc mount, installing msmtp..."
+  export INSTALL_MSMTP="true"
+fi
+
+if [[ "${INSTALL_MSMTP}" == "true" ]]; then
+  apk add --update --no-cache \
+    mailx \
+    msmtp
+  
+  echo "Enabling msmtpd service"
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-msmtpd
+  
+  echo "Installed msmtp!"
+fi

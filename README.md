@@ -305,7 +305,7 @@ docker run -d \
     -e TZ=Europe/Berlin \
     -e KEEPALIVED_CUSTOM_CONFIG=true \
     -v "$(pwd)/keepalived.conf:/etc/keepalived/keepalived.conf:ro" \
-    -v "$(pwd)/msmtprc:/root/.msmptrc:ro" \
+    -v "$(pwd)/msmtprc:/root/.msmtprc:ro" \
     -v "$(pwd)/mail-aliases:/etc/aliases:ro" \
     shawly/keepalived
 ```
@@ -327,7 +327,7 @@ services:
     volumes:
       # mount the files as read only, so it can't be modified from within the container for additional security
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
-      - "./msmtprc:/root/.msmptrc:ro"
+      - "./msmtprc:/root/.msmtprc:ro"
       - "./mail-aliases:/etc/aliases:ro"
 ```
 
