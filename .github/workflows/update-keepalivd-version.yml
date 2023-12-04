@@ -17,7 +17,7 @@ jobs:
       - name: Fetch release version
         id: fetch-release
         run: |
-          wget https://git.alpinelinux.org/aports/plain/community/keepalived/APKBUILD?h=3.16-stable -O APKBUILD
+          wget https://git.alpinelinux.org/aports/plain/community/keepalived/APKBUILD?h=3.18-stable -O APKBUILD
           source APKBUILD
           rm -f APKBUILD
           KEEPALIVED_VERSION="${pkgver}"
