@@ -1,6 +1,8 @@
 name: Docker
 
 on:
+  workflow_dispatch:
+
   push:
     # Publish `main` as Docker `edge` image.
     branches:
