@@ -5,7 +5,7 @@
 #
 
 # Set alpine image version
-ARG ALPINE_VERSION="3.18"
+ARG ALPINE_VERSION="3.19"
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION="v3.1.6.2"
