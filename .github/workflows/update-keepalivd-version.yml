@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: main
           token: ${{ secrets.WORKFLOW_TOKEN }}
@@ -18,7 +18,7 @@ jobs:
       - name: Fetch release version
         id: fetch-release
         run: |
-          wget https://git.alpinelinux.org/aports/plain/community/keepalived/APKBUILD?h=3.18-stable -O APKBUILD
+          wget https://git.alpinelinux.org/aports/plain/community/keepalived/APKBUILD?h=3.20-stable -O APKBUILD
           source APKBUILD
           rm -f APKBUILD
           KEEPALIVED_VERSION="${pkgver}"
