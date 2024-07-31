@@ -27,15 +27,52 @@ else
         exit 1
     fi
     # Possibly some interfaces are named and don't end in a number so beware of this one
-    if ! [[ "${KEEPALIVED_INTERFACE}" =~ ^.*[0-9]$ ]]; then
+    if ! [[ "${KEEPALIVED_INTERFACE}" =~ ^.*[0-9]$ || "${KEEPALIVED_INTERFACE}" =~ 'auto' ]]; then
         echo "The KEEPALIVED_INTERFACE environment variable (${KEEPALIVED_INTERFACE}) is null or doesn't end in a number, exiting..."
         exit 1
     fi
     # Check if given interface is available
-    available_interfaces=( $(ip -br l | awk '$1 !~ "lo|vir|docker0|vethd" { print $1}') )
-    if [[ ! " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " ]]; then
+    available_interfaces=( $(ip -br l | awk '$1 !~ "lo|vir|docker0|veth|docker_" { print $1}') )
+    if [[ ! " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" =~ 'auto' ]]; then
         echo "The KEEPALIVED_INTERFACE environment variable contains a non existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[@]}). Exiting..."
         exit 1
+    fi
+    # Check if interface is set to auto. Where we'll pull an interface matching the subnet mask of the ip given.
+    if [[ "${KEEPALIVED_INTERFACE}" =~ 'auto' ]]; then
+        # Loop through the returned interfaces to match see if there's a matching CIDR
+        for interface in $(ip -br addr | awk '$1 != "lo|vir|docker0|veth|docker_" { print $1"_"$3}'); do
+            # Break out the IPs from the interface and environment variable
+            firsti="$(echo $interface | cut -d"_" -f2 | cut -d"/" -f 1 | cut -d"." -f 1)"
+            secondi="$(echo $interface | cut -d"_" -f2 | cut -d"/" -f 1 | cut -d"." -f 2)"
+            thirdi="$(echo $interface | cut -d"_" -f2 | cut -d"/" -f 1 | cut -d"." -f 3)"
+            fourthi="$(echo $interface | cut -d"_" -f2 | cut -d"/" -f 1 | cut -d"." -f 4)"
+            cidri="$(echo $interface | cut -d"_" -f2 | cut -d"/" -f 2)"
+
+            firstv="$(echo $KEEPALIVED_VIRTUAL_IP | cut -d"." -f 1)"
+            secondv="$(echo $KEEPALIVED_VIRTUAL_IP | cut -d"." -f 2)"
+            thirdv="$(echo $KEEPALIVED_VIRTUAL_IP | cut -d"." -f 3)"
+            fourthv="$(echo $KEEPALIVED_VIRTUAL_IP | cut -d"." -f 4)"
+            cidrv="$(echo $KEEPALIVED_VIRTUAL_MASK)"
+
+            if [[ $cidrv != $cidri ]]; then
+                continue
+            elif [[ $cidri -ge 8 && $firsti != $firstv ]]; then
+                continue
+            elif [[ $cidri -ge 16 && $secondi != $secondv ]]; then
+                continue
+            elif [[ $cidri -ge 24 && $thirdi != $thirdv ]]; then
+                continue
+            elif [[ $cidri -ge 32 && $fourhti != $fourthv ]]; then
+                continue
+            fi
+
+            KEEPALIVED_INTERFACE=$(echo $interface | cut -d"_" -f1)
+        done
+        if [[ $KEEPALIVED_INTERFACE =~ 'auto' ]]; then
+            available_ranges=( $(ip -br addr | awk '$1 !~ "lo|vir|docker0|veth|docker_" { print $3}') )
+            echo "The KEEPALIVED_VIRTUAL_IP and KEEPALIVED_VIRTUAL_MASK don't match any interfaces on this device. Available ranges are: ${available_ranges[@]}). Exiting..."
+            exit 1
+        fi
     fi
     # Make sure to clean up VIP before start (in case of ungraceful shutdown)
     if [[ "$(ip addr | grep ${KEEPALIVED_INTERFACE} | grep ${KEEPALIVED_VIRTUAL_IP})" ]]; then
