@@ -14,6 +14,7 @@ Thank you for considering contributing to `docker-keepalived`! This document pro
 This project follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. Please adhere to the specification when creating commit messages.
 
 ### Commit Message Structure
+
 ```
 <type>[optional scope]: <description>
 
@@ -23,6 +24,7 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 ```
 
 ### Types
+
 - `feat`: A new feature.
 - `fix`: A bug fix.
 - `docs`: Documentation only changes.
@@ -35,6 +37,7 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 ## Writing and Modifying Init Scripts
 
 When adding or modifying init scripts, please ensure the following:
+
 1. **Code Quality**: Follow best practices for Bash scripting.
 2. **Error Handling**: Ensure that scripts handle errors gracefully and provide informative error messages.
 3. **Testing**: Write tests using BATS (Bash Automated Testing System).
@@ -55,18 +58,37 @@ Please refer to the [BATS installation guide](https://github.com/bats-core/bats-
 
 ### Writing Tests
 
-1. Create a new test file in the `tests` directory with a `.bats` extension. For example: `tests/my_script.bats`
+1. Create a new test file in the `test` directory with a `.bats` extension. For example: `test/my_script.bats`
 2. Write your test cases within the new `.bats` file. Here's a basic example:
 
-    ```bash
-    #!/usr/bin/env bats
+```bash
+#!/usr/bin/env bats
 
-    @test "description of the test case" {
-        run ./path/to/your_script.sh
-        [ "$status" -eq 0 ]
-        [ "$output" == "expected output" ]
-    }
-    ```
+bats_require_minimum_version 1.5.0
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
+
+setup() {
+    # prepare s6 paths (this is mandatory for the bats tests to work with s6-overlay)
+    export PATH="/command:$PATH"
+    mkdir -p /run/s6/container_environment
+}
+
+teardown() {
+    rm -f /run/s6/container_environment/*
+}
+
+@test "init-your-script does something whenever your variable was set" {
+    echo -n "your variable value" > /run/s6/container_environment/WHAT_EVER_YOU_WANT_TO_SET_FOR_S6
+
+    run /etc/s6-overlay/s6-rc.d/init-your-script
+
+    assert_output "your variable was set and your script did something to output this text, yay!"
+}
+```
+
+Writing tests for s6-overlay scripts is a little bit special, since we don't run s6-overlay but execute the scripts directly, we must add `/command` to the PATH and we also have to create the directory `/run/s6/container_environment`.
+Environment variables must be set in the `/run/s6/container_environment` directory, not with `export`.
 
 ### Running Tests
 
