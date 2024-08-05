@@ -12,6 +12,6 @@ if [[ "${INSTALL_DOCKER}" == "true" ]]; then
   apk add --update --no-cache \
     docker-cli \
     docker-cli-compose
-  
+
   echo "Installed docker-cli!"
 fi

@@ -52,6 +52,7 @@ jobs:
           context: .
           platforms: linux/amd64
           push: false
+          tags: keepalived:test-build
           cache-from: type=local,src=/tmp/.test-buildx-cache
           cache-to: type=local,dest=/tmp/.test-buildx-cache-new
 
@@ -62,6 +63,17 @@ jobs:
         run: |
           rm -rf /tmp/.test-buildx-cache
           mv /tmp/.test-buildx-cache-new /tmp/.test-buildx-cache
+
+      - name: Run BATS tests
+        run: |
+          docker run --rm -it --name keepalived-test \
+            --cap-add=NET_ADMIN \
+            --cap-add=NET_BROADCAST \
+            --net host \
+            --entrypoint /test/bats/bin/bats \
+            -w /test \
+            -v "$PWD/test:/test" \
+            keepalived:test-build .
 
   # Build images.
   build:
