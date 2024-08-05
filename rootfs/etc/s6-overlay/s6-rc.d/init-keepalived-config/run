@@ -10,35 +10,30 @@ else
         if [[ -z ${KEEPALIVED_CHECK_IP} ]] || [[ ${KEEPALIVED_CHECK_IP} = 'any' ]]; then
             KEEPALIVED_CHECK_SCRIPT="iptables -t nat -nL CATTLE_PREROUTING | grep ':${KEEPALIVED_CHECK_PORT}'"
         else
-            KEEPALIVED_CHECK_SCRIPT="iptables -nL | grep '${KEEPALIVED_CHECK_IP}' && iptables -t nat -nL CATTLE_PREROUTING | grep ':${CHECK_PORT}'"
+            KEEPALIVED_CHECK_SCRIPT="iptables -nL | grep '${KEEPALIVED_CHECK_IP}' && iptables -t nat -nL CATTLE_PREROUTING | grep ':${KEEPALIVED_CHECK_PORT}'"
         fi
     fi
     # Make sure the variables we need to run are populated and (roughly) valid
-    if ! [[ "${KEEPALIVED_VIRTUAL_IP}" =~ ^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-2][0-3])\.)(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-5][0-5])\.){2}([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-5][0-5])$ ]]; then
-        echo "The KEEPALIVED_VIRTUAL_IP environment variable (${KEEPALIVED_VIRTUAL_IP}) is null or not a valid IP address, exiting..."
+    if ! ipcalc -c "${KEEPALIVED_VIRTUAL_IP}"; then
+        echo "The KEEPALIVED_VIRTUAL_IP environment variable (${KEEPALIVED_VIRTUAL_IP}) is not a valid IP address, exiting..."
         exit 1
     fi
-    if ! [[ "${KEEPALIVED_VIRTUAL_MASK}" =~ ^([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
-        echo "The KEEPALIVED_VIRTUAL_MASK environment variable (${KEEPALIVED_VIRTUAL_MASK}) is null or not a valid subnet mask, exiting..."
+    if ! ipcalc -c "${KEEPALIVED_VIRTUAL_IP}/${KEEPALIVED_VIRTUAL_MASK}"; then
+        echo "The KEEPALIVED_VIRTUAL_MASK environment variable (${KEEPALIVED_VIRTUAL_MASK}) is not a valid subnet mask, exiting..."
         exit 1
     fi
     if ! [[ "${KEEPALIVED_VRID}" =~ ^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-5][0-5])$ ]]; then
-        echo "The KEEPALIVED_VRID environment variable (${KEEPALIVED_VRID}) is null or not a number between 1 and 255, exiting..."
-        exit 1
-    fi
-    # Possibly some interfaces are named and don't end in a number so beware of this one
-    if ! [[ "${KEEPALIVED_INTERFACE}" =~ ^.*[0-9]$ ]]; then
-        echo "The KEEPALIVED_INTERFACE environment variable (${KEEPALIVED_INTERFACE}) is null or doesn't end in a number, exiting..."
+        echo "The KEEPALIVED_VRID environment variable (${KEEPALIVED_VRID}) is not a number between 1 and 255, exiting..."
         exit 1
     fi
     # Check if given interface is available
-    available_interfaces=( $(ip -br l | awk '$1 !~ "lo|vir|docker0|vethd" { print $1}') )
-    if [[ ! " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " ]]; then
-        echo "The KEEPALIVED_INTERFACE environment variable contains a non existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[@]}). Exiting..."
+    IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' && printf '\0')
+    if ! [[ " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" == "auto" ]]; then
+        echo "The KEEPALIVED_INTERFACE environment variable contains a non-existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[*]}. Exiting..."
         exit 1
     fi
     # Make sure to clean up VIP before start (in case of ungraceful shutdown)
-    if [[ "$(ip addr | grep ${KEEPALIVED_INTERFACE} | grep ${KEEPALIVED_VIRTUAL_IP})" ]]; then
+    if ip addr | grep -q "${KEEPALIVED_INTERFACE}" | grep -q "${KEEPALIVED_VIRTUAL_IP}/${KEEPALIVED_VIRTUAL_MASK}"; then
         ip addr del "${KEEPALIVED_VIRTUAL_IP}/${KEEPALIVED_VIRTUAL_MASK}" dev "${KEEPALIVED_INTERFACE}"
     fi
 
