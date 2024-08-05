@@ -32,6 +32,30 @@ else
         echo "The KEEPALIVED_INTERFACE environment variable contains a non-existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[*]}. Exiting..."
         exit 1
     fi
+
+    # Check if interface is set to 'auto' and match CIDR
+    if [[ "${KEEPALIVED_INTERFACE}" == "auto" ]]; then
+        while IFS=_ read -r interface cidr_ip; do
+            interface_name=$interface
+            interface_network=$(ipcalc -n "$cidr_ip" | cut -d'=' -f2)
+            interface_mask=$(ipcalc -p "$cidr_ip" | cut -d'=' -f2)
+            vip_network=$(ipcalc -n "$KEEPALIVED_VIRTUAL_IP/$KEEPALIVED_VIRTUAL_MASK" | cut -d'=' -f2)
+
+            if [[ "$KEEPALIVED_VIRTUAL_MASK" == "$interface_mask" ]] && [[ "$vip_network" == "$interface_network" ]]; then
+                echo "Found interface $interface_name for $KEEPALIVED_VIRTUAL_IP/$KEEPALIVED_VIRTUAL_MASK"
+                export KEEPALIVED_INTERFACE="$interface_name"
+                break
+            fi
+        done < <(ip -br addr show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1"_"$3 }')
+
+        # If no matching interface is found
+        if [[ $KEEPALIVED_INTERFACE == "auto" ]]; then
+            IFS=$'\n' read -r -d '' -a available_ranges < <(ip -br addr show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $3 }' && printf '\0')
+            echo "The KEEPALIVED_VIRTUAL_IP and KEEPALIVED_VIRTUAL_MASK don't match any interfaces on this device. Available ranges are: ${available_ranges[*]}. Exiting..."
+            exit 1
+        fi
+    fi
+
     # Make sure to clean up VIP before start (in case of ungraceful shutdown)
     if ip addr | grep -q "${KEEPALIVED_INTERFACE}" | grep -q "${KEEPALIVED_VIRTUAL_IP}/${KEEPALIVED_VIRTUAL_MASK}"; then
         ip addr del "${KEEPALIVED_VIRTUAL_IP}/${KEEPALIVED_VIRTUAL_MASK}" dev "${KEEPALIVED_INTERFACE}"
