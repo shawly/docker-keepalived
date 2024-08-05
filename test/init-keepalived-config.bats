@@ -113,3 +113,26 @@ teardown() {
     assert grep -q "virtual_router_id 1" /etc/keepalived/keepalived.conf
     assert grep -Pz 'virtual_ipaddress {.*\n\s*192.168.0.10/24 dev dummy0\n.*}' /etc/keepalived/keepalived.conf
 }
+
+@test "init-keepalived-config autodetermines KEEPALIVED_INTERFACE if set to 'auto'" {
+    echo -n "192.168.0.123" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "auto" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'Found interface dummy0 for 192.168.0.123/24'
+    assert grep -Pz 'virtual_ipaddress {.*\n\s*192.168.0.10/24 dev dummy0\n.*}' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_INTERFACE is set to 'auto' and no interface is found" {
+    echo -n "192.168.33.123" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "22" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "auto" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial "The KEEPALIVED_VIRTUAL_IP and KEEPALIVED_VIRTUAL_MASK don't match any interfaces on this device."
+}
