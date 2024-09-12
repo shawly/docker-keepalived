@@ -20,6 +20,6 @@ if [[ "${INSTALL_MSMTP}" == "true" ]]; then
   echo "Installed msmtp!"
 
   echo "Starting service..."
-  s6-svc -wu /var/run/service/svc-msmtpd
+  s6-svc -u /var/run/service/svc-msmtpd
   echo "msmtpd service started!"
 fi
