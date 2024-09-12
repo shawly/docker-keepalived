@@ -15,6 +15,7 @@ if [[ "${INSTALL_MSMTP}" == "true" ]]; then
 
   echo "Enabling msmtpd service"
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-msmtpd
+  touch /etc/s6-overlay/s6-rc.d/svc-keepalived/dependencies.d/svc-msmtpd
 
   echo "Installed msmtp!"
 fi
