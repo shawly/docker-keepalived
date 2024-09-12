@@ -18,4 +18,8 @@ if [[ "${INSTALL_MSMTP}" == "true" ]]; then
   touch /etc/s6-overlay/s6-rc.d/svc-keepalived/dependencies.d/svc-msmtpd
 
   echo "Installed msmtp!"
+
+  echo "Starting service..."
+  s6-svc -wu /var/run/service/svc-msmtpd
+  echo "msmtpd service started!"
 fi
