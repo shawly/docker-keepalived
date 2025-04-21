@@ -71,6 +71,7 @@ else
     sed -i "s/{{CHECK_SCRIPT}}/${KEEPALIVED_CHECK_SCRIPT}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{VRID}}/${KEEPALIVED_VRID}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{INTERFACE}}/${KEEPALIVED_INTERFACE}/g" /etc/keepalived/keepalived.conf
+    sed -i "s/{{STATE}}/${KEEPALIVED_STATE}/g" /etc/keepalived/keepalived.conf
 fi
 
 # Finished configuration,
