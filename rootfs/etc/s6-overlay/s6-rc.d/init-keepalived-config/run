@@ -26,6 +26,10 @@ else
         echo "The KEEPALIVED_VRID environment variable (${KEEPALIVED_VRID}) is not a number between 1 and 255, exiting..."
         exit 1
     fi
+    if ! [[ "${KEEPALIVED_STATE}" =~ ^(MASTER)|(BACKUP)$ ]]; then
+        echo "The KEEPALIVED_STATE environment variable (${KEEPALIVED_STATE}) must be either MASTER or BACKUP, exiting..."
+        exit 1
+    fi
     # Check if given interface is available
     IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' && printf '\0')
     if ! [[ " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" == "auto" ]]; then

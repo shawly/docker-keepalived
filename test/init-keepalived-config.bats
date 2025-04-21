@@ -77,11 +77,34 @@ teardown() {
     assert_output --partial 'The KEEPALIVED_VRID environment variable (999) is not a number between 1 and 255, exiting...'
 }
 
+@test "init-keepalived-config fails when KEEPALIVED_STATE is not set" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "" > /run/s6/container_environment/KEEPALIVED_STATE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_STATE environment variable () must be either MASTER or BACKUP, exiting...'
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_STATE is not MASTER or BACKUP" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "ABC" > /run/s6/container_environment/KEEPALIVED_STATE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_STATE environment variable (ABC) must be either MASTER or BACKUP, exiting...'
+}
+
 @test "init-keepalived-config fails when KEEPALIVED_INTERFACE is set to an interface that doesn't exist" {
     echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
     echo -n "eth999" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
@@ -93,6 +116,7 @@ teardown() {
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
     echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
@@ -104,6 +128,7 @@ teardown() {
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
     echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
@@ -119,6 +144,7 @@ teardown() {
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
     echo -n "auto" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
@@ -131,6 +157,7 @@ teardown() {
     echo -n "22" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
     echo -n "auto" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
