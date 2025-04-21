@@ -26,6 +26,10 @@ else
         echo "The KEEPALIVED_VRID environment variable (${KEEPALIVED_VRID}) is not a number between 1 and 255, exiting..."
         exit 1
     fi
+    if ! [[ "${KEEPALIVED_PRIORITY}" =~ ^[[:digit:]]+$ ]]; then
+        echo "The KEEPALIVED_PRIORITY environment variable (${KEEPALIVED_PRIORITY}) is not a number, exiting..."
+        exit 1
+    fi
     # Check if given interface is available
     IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' && printf '\0')
     if ! [[ " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" == "auto" ]]; then
@@ -67,6 +71,7 @@ else
     sed -i "s/{{CHECK_SCRIPT}}/${KEEPALIVED_CHECK_SCRIPT}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{VRID}}/${KEEPALIVED_VRID}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{INTERFACE}}/${KEEPALIVED_INTERFACE}/g" /etc/keepalived/keepalived.conf
+    sed -i "s/{{PRIORITY}}/${KEEPALIVED_PRIORITY}/g" /etc/keepalived/keepalived.conf
 fi
 
 # Finished configuration,
