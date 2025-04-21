@@ -16,6 +16,8 @@ This is a Docker container for [keepalived](https://github.com/acassen/keepalive
   - [Table of Content](#table-of-content)
   - [Supported tags](#supported-tags)
   - [Image Variants](#image-variants)
+    - [`shawly/keepalived:<version>`](#shawlykeepalivedversion)
+    - [`shawly/keepalived:edge-<commitsha>`](#shawlykeepalivededge-commitsha)
   - [Supported Architectures](#supported-architectures)
   - [Quick Start](#quick-start)
   - [Usage](#usage)
@@ -24,9 +26,16 @@ This is a Docker container for [keepalived](https://github.com/acassen/keepalive
   - [Docker Compose File](#docker-compose-file)
   - [Docker Image Update](#docker-image-update)
   - [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)
+    - [Example with `docker run`](#example-with-docker-run)
+    - [Example `docker-compose.yml`](#example-docker-composeyml)
   - [Sending email notifications](#sending-email-notifications)
-  - [Controlling the docker daemon](#controlling-the-docker-daemon)
+    - [Example with `docker run`](#example-with-docker-run-1)
+    - [Example `docker-compose.yml`](#example-docker-composeyml-1)
+  - [Controlling the Docker daemon](#controlling-the-docker-daemon)
+    - [Example with `docker run`](#example-with-docker-run-2)
+    - [Example `docker-compose.yml`](#example-docker-composeyml-2)
   - [Support](#support)
+  - [Contribution](#contribution)
   - [Credits](#credits)
 
 ## Supported tags
@@ -112,6 +121,7 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `KEEPALIVED_CHECK_IP`      | Set this to a specific IP if you only want to check `KEEPALIVED_CHECK_PORT` on the given IP address                                                                                                                                                    | `any`     |
 | `KEEPALIVED_CHECK_PORT`    | Set this to the port you want to check                                                                                                                                                                                                                 | undefined |
 | `KEEPALIVED_VRID`          | The virtual router id                                                                                                                                                                                                                                  | undefined |
+| `KEEPALIVED_PRIORITY`      | Set the instance priority | 100 |
 | `KEEPALIVED_INTERFACE`     | Interface on your host e.g. `eth0` (use `ip -br l` to list all your interfaces). `auto` automatically determines which interface to use based on set `KEEPALIVED_VIRTUAL_IP` and `KEEPALIVED_VIRTUAL_MASK`.                                            | `auto`    |
 | `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                               | undefined |
 | `KEEPALIVED_CUSTOM_CONFIG` | If you set this to `true` the configuration `/etc/keepalived/keepalived.conf` will not be set up automatically. Use this if you want to customize your keepalived.conf manually (see [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)) | `false`   |
