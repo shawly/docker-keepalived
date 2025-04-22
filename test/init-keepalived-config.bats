@@ -103,7 +103,7 @@ teardown() {
     echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
-    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
     echo -n "" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
@@ -115,7 +115,7 @@ teardown() {
     echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
     echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
     echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
-    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
     echo -n "ABC" > /run/s6/container_environment/KEEPALIVED_STATE
 
     run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
