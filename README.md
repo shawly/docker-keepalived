@@ -42,7 +42,7 @@ This is a Docker container for [keepalived](https://github.com/acassen/keepalive
 
 <!-- supported tags will be auto updated through workflows! -->
 
-- `edge`, `edge-dc916a4`, `edge-dc916a43c78da7d88d3a5866a2b19d0c6b004304` <!-- edge tag -->
+- `edge`, `edge-e906fc8e5ca0ef4c7603d91ed4cf4b114476e0ff`, `edge-e906fc8` <!-- edge tag -->
 - `latest`, `2`, `2.3`, `2.3.1` <!-- latest tag -->
 
 ## Image Variants
@@ -121,6 +121,7 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `KEEPALIVED_CHECK_IP`      | Set this to a specific IP if you only want to check `KEEPALIVED_CHECK_PORT` on the given IP address                                                                                                                                                    | `any`     |
 | `KEEPALIVED_CHECK_PORT`    | Set this to the port you want to check                                                                                                                                                                                                                 | undefined |
 | `KEEPALIVED_VRID`          | The virtual router id                                                                                                                                                                                                                                  | undefined |
+| `KEEPALIVED_PRIORITY`      | Set the instance priority | 100 |
 | `KEEPALIVED_INTERFACE`     | Interface on your host e.g. `eth0` (use `ip -br l` to list all your interfaces). `auto` automatically determines which interface to use based on set `KEEPALIVED_VIRTUAL_IP` and `KEEPALIVED_VIRTUAL_MASK`.                                            | `auto`    |
 | `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                               | undefined |
 | `KEEPALIVED_STATE` | The initial state of the instance | BACKUP
