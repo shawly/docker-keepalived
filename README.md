@@ -124,6 +124,7 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `KEEPALIVED_PRIORITY`      | Set the instance priority | 100 |
 | `KEEPALIVED_INTERFACE`     | Interface on your host e.g. `eth0` (use `ip -br l` to list all your interfaces). `auto` automatically determines which interface to use based on set `KEEPALIVED_VIRTUAL_IP` and `KEEPALIVED_VIRTUAL_MASK`.                                            | `auto`    |
 | `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                               | undefined |
+| `KEEPALIVED_STATE` | The initial state of the instance | BACKUP
 | `KEEPALIVED_CUSTOM_CONFIG` | If you set this to `true` the configuration `/etc/keepalived/keepalived.conf` will not be set up automatically. Use this if you want to customize your keepalived.conf manually (see [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)) | `false`   |
 
 ### Changing Parameters of a Running Container
