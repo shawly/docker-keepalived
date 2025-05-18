@@ -35,7 +35,7 @@ else
         exit 1
     fi
     # Check if given interface is available
-    IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' && printf '\0')
+    IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' | cut -d '@' -f1 && printf '\0')
     if ! [[ " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" == "auto" ]]; then
         echo "The KEEPALIVED_INTERFACE environment variable contains a non-existent interface \"${KEEPALIVED_INTERFACE}\". Available interfaces are: ${available_interfaces[*]}. Exiting..."
         exit 1
