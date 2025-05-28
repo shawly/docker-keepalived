@@ -342,6 +342,69 @@ services:
       - "./mail-aliases:/etc/aliases:ro"
 ```
 
+### Example `job.nomad`
+
+```hcl
+variable "datacenters" {
+  type    = list(string)
+  default = ["dc1"]
+}
+variable "namespace" {
+  type    = string
+  default = "default"
+}
+
+job "keepalived" {
+  datacenters = var.datacenters
+  namespace   = var.namespace
+  priority    = 100
+
+  constraint {
+    distinct_hosts = true
+  }
+
+  group "keepalived" {
+
+    count = 2
+
+    update {
+      max_parallel     = 1
+      canary           = 1
+      min_healthy_time = "10s"
+      healthy_deadline = "1m"
+      auto_revert      = true
+      auto_promote     = true
+    }
+
+    task "keepalived" {
+
+      driver = "docker"
+
+      env {
+        KEEPALIVED_VIRTUAL_IP   = "10.100.1.30"
+        KEEPALIVED_CHECK_PORT   = 80
+        KEEPALIVED_VIRTUAL_MASK = 24
+        KEEPALIVED_VRID         = 99
+        KEEPALIVED_INTERFACE    = "eth0"
+      }
+
+      config {
+        image        = "shawly/keepalived:2.3.1"
+        hostname     = "${attr.unique.hostname}"
+        network_mode = "host"
+        privileged   = true
+      }
+
+      resources {
+        cpu    = 100
+        memory = 64
+      }
+    }
+  }
+}
+
+```
+
 ## Controlling the Docker daemon
 
 If you want to control containers on your host, you can mount `/var/run/docker.sock` into your `keepalived` container.
