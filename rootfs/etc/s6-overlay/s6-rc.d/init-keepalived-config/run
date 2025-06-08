@@ -51,7 +51,7 @@ else
 
             if [[ "$KEEPALIVED_VIRTUAL_MASK" == "$interface_mask" ]] && [[ "$vip_network" == "$interface_network" ]]; then
                 echo "Found interface $interface_name for $KEEPALIVED_VIRTUAL_IP/$KEEPALIVED_VIRTUAL_MASK"
-                export KEEPALIVED_INTERFACE="$interface_name"
+                export KEEPALIVED_INTERFACE="$(cut -d '@' -f1 <<< "$interface_name")"
                 break
             fi
         done < <(ip -br addr show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1"_"$3 }')
