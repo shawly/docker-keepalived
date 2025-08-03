@@ -10,7 +10,7 @@ else
         if [[ -z ${KEEPALIVED_CHECK_IP} ]] || [[ ${KEEPALIVED_CHECK_IP} = 'any' ]]; then
             KEEPALIVED_CHECK_SCRIPT="iptables -t nat -nL CATTLE_PREROUTING | grep ':${KEEPALIVED_CHECK_PORT}'"
         else
-            KEEPALIVED_CHECK_SCRIPT="iptables -nL | grep '${KEEPALIVED_CHECK_IP}' && iptables -t nat -nL CATTLE_PREROUTING | grep ':${KEEPALIVED_CHECK_PORT}'"
+            KEEPALIVED_CHECK_SCRIPT="iptables -nL | grep '${KEEPALIVED_CHECK_IP}' \&\& iptables -t nat -nL CATTLE_PREROUTING | grep ':${KEEPALIVED_CHECK_PORT}'"
         fi
     fi
     # Make sure the variables we need to run are populated and (roughly) valid
