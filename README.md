@@ -80,7 +80,7 @@ Launch the keepalived docker container with the following command:
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
-    --cap-add=NET_BROADCAST \
+    --cap-add=NET_RAW \
     --net host \
     -e KEEPALIVED_VIRTUAL_IP=10.11.12.99 \
     -e KEEPALIVED_CHECK_PORT=443 \
@@ -175,7 +175,7 @@ services:
     network_mode: host
     cap_add:
       - NET_ADMIN
-      - NET_BROADCAST
+      - NET_RAW
 ```
 
 ## Docker Image Update
@@ -207,7 +207,7 @@ docker rm keepalived
 
 If you want to mount a custom configuration, you need to set the environment variable `KEEPALIVED_CUSTOM_CONFIG=true`.
 
-This will stop the `init-kepalived-config` service from applying the values from environment variables and checking them for validity.
+This will stop the `init-keepalived-config` service from applying the values from environment variables and checking them for validity.
 
 This means you need to set IPs, scripts etc. in your custom config!
 
@@ -221,7 +221,7 @@ Create a `keepalived.conf` with your configuration and mount it to `/etc/keepali
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
-    --cap-add=NET_BROADCAST \
+    --cap-add=NET_RAW \
     --net host \
     -e TZ=Europe/Berlin \
     -e KEEPALIVED_CUSTOM_CONFIG=true \
@@ -244,7 +244,7 @@ services:
     network_mode: host
     cap_add:
       - NET_ADMIN
-      - NET_BROADCAST
+      - NET_RAW
     volumes:
       # mount the conf as read only, so it can't be modified from within the container for additional security
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
@@ -286,7 +286,7 @@ default: yourgmail+keepalived@gmail.com
 
 I recommend to use the `+keepalived` alias so you can easily filter emails, but it's up to you. Your mail provider/server should support this though if you are not using gmail.
 
-The default config doesn't have any mail notifications configured, so you are requried to create and use a custom `keepalived.conf` [as described above](#using-a-custom-keepalivedconf).
+The default config doesn't have any mail notifications configured, so you are required to create and use a custom `keepalived.conf` [as described above](#using-a-custom-keepalivedconf).
 
 To use the `msmtpd` that pipes mails to `msmtp`, you need to send your mails to `localhost` on port `25` in your `keepalived.conf`, like this:
 
@@ -303,7 +303,7 @@ global_defs {
 ```
 
 **Note:** The mail server only listens on `127.0.0.1` port `25` by default which should not be changed and port `25` should never be opened to the public!  
-**NEVER** configure your mail server directly in the `keepalived.conf`! It has no support for encryption or any security features, that's why you need to pipe your e-mails through msmtp which act's as a relay and supports TLS/SSL.
+**NEVER** configure your mail server directly in the `keepalived.conf`! It has no support for encryption or any security features, that's why you need to pipe your e-mails through msmtp which acts as a relay and supports TLS/SSL.
 
 ### Example with `docker run`
 
@@ -311,7 +311,7 @@ global_defs {
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
-    --cap-add=NET_BROADCAST \
+    --cap-add=NET_RAW \
     --net host \
     -e TZ=Europe/Berlin \
     -e KEEPALIVED_CUSTOM_CONFIG=true \
@@ -334,7 +334,7 @@ services:
     network_mode: host
     cap_add:
       - NET_ADMIN
-      - NET_BROADCAST
+      - NET_RAW
     volumes:
       # mount the files as read only, so it can't be modified from within the container for additional security
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
@@ -488,7 +488,7 @@ If your container is using a macvlan network you can also use `docker network co
 docker run -d \
     --name=keepalived \
     --cap-add=NET_ADMIN \
-    --cap-add=NET_BROADCAST \
+    --cap-add=NET_RAW \
     --net host \
     -e TZ=Europe/Berlin \
     -e KEEPALIVED_CUSTOM_CONFIG=true \
@@ -511,7 +511,7 @@ services:
     network_mode: host
     cap_add:
       - NET_ADMIN
-      - NET_BROADCAST
+      - NET_RAW
     volumes:
       # mount the files as read only, so it can't be modified from within the container for additional security
       - "./keepalived.conf:/etc/keepalived/keepalived.conf:ro"
