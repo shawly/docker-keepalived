@@ -34,7 +34,11 @@ else
         echo "The KEEPALIVED_STATE environment variable (${KEEPALIVED_STATE}) must be either MASTER or BACKUP, exiting..."
         exit 1
     fi
-    # Validate authentication settings if provided
+    # Validate optional authentication settings
+    if [[ -n "${KEEPALIVED_AUTH_PASS}" ]] && [[ -z "${KEEPALIVED_AUTH_TYPE}" ]]; then
+        echo "The KEEPALIVED_AUTH_PASS environment variable is set but KEEPALIVED_AUTH_TYPE is not specified, exiting..."
+        exit 1
+    fi
     if [[ -n "${KEEPALIVED_AUTH_TYPE}" ]]; then
         if ! [[ "${KEEPALIVED_AUTH_TYPE}" =~ ^(PASS)|(AH)$ ]]; then
             echo "The KEEPALIVED_AUTH_TYPE environment variable (${KEEPALIVED_AUTH_TYPE}) must be either PASS or AH, exiting..."
@@ -44,8 +48,8 @@ else
             echo "The KEEPALIVED_AUTH_PASS environment variable must be set when KEEPALIVED_AUTH_TYPE is specified, exiting..."
             exit 1
         fi
-        if [[ ${#KEEPALIVED_AUTH_PASS} -gt 8 ]]; then
-            echo "The KEEPALIVED_AUTH_PASS environment variable (${KEEPALIVED_AUTH_PASS}) must not exceed 8 characters, exiting..."
+        if [[ ${#KEEPALIVED_AUTH_PASS} -lt 1 ]] || [[ ${#KEEPALIVED_AUTH_PASS} -gt 8 ]]; then
+            echo "The KEEPALIVED_AUTH_PASS environment variable must be between 1 and 8 characters (current length: ${#KEEPALIVED_AUTH_PASS}), exiting..."
             exit 1
         fi
     fi
@@ -95,8 +99,11 @@ else
 
     # Handle authentication configuration
     if [[ -n "${KEEPALIVED_AUTH_TYPE}" ]] && [[ -n "${KEEPALIVED_AUTH_PASS}" ]]; then
+        # Escape special characters in password for sed
+        AUTH_PASS_ESCAPED=$(printf '%s\n' "${KEEPALIVED_AUTH_PASS}" | sed 's:[\/&]:\\&:g')
+
         sed -i "s/{{AUTH_TYPE}}/${KEEPALIVED_AUTH_TYPE}/g" /etc/keepalived/keepalived.conf
-        sed -i "s/{{AUTH_PASS}}/${KEEPALIVED_AUTH_PASS}/g" /etc/keepalived/keepalived.conf
+        sed -i "s/{{AUTH_PASS}}/${AUTH_PASS_ESCAPED}/g" /etc/keepalived/keepalived.conf
         # Remove the marker lines
         sed -i '/{{AUTH_BLOCK_START}}/d' /etc/keepalived/keepalived.conf
         sed -i '/{{AUTH_BLOCK_END}}/d' /etc/keepalived/keepalived.conf
@@ -108,4 +115,4 @@ fi
 
 # Finished configuration,
 echo "Displaying resulting /etc/keepalived/keepalived.conf contents..."
-cat /etc/keepalived/keepalived.conf
+sed 's/auth_pass .*/auth_pass [REDACTED]/' /etc/keepalived/keepalived.conf
