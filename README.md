@@ -125,6 +125,8 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `KEEPALIVED_INTERFACE`     | Interface on your host e.g. `eth0` (use `ip -br l` to list all your interfaces). `auto` automatically determines which interface to use based on set `KEEPALIVED_VIRTUAL_IP` and `KEEPALIVED_VIRTUAL_MASK`.                                            | `auto`    |
 | `KEEPALIVED_CHECK_SCRIPT`  | You can set a custom script that is used for checking if a host is alive                                                                                                                                                                               | undefined |
 | `KEEPALIVED_STATE` | The initial state of the instance | BACKUP
+| `KEEPALIVED_AUTH_TYPE`     | Authentication type for VRRP packets. Must be either `PASS` (simple password) or `AH` (IPSEC AH). Optional - if not set, no authentication is used. **Note**: All nodes in the same VRRP group must use the same authentication type and password.                                                                                           | undefined |
+| `KEEPALIVED_AUTH_PASS`     | Authentication password (1-8 characters). Required when `KEEPALIVED_AUTH_TYPE` is set. **Note**: Passwords are limited to 8 characters by the VRRP protocol.                                                                                     | undefined |
 | `KEEPALIVED_CUSTOM_CONFIG` | If you set this to `true` the configuration `/etc/keepalived/keepalived.conf` will not be set up automatically. Use this if you want to customize your keepalived.conf manually (see [Using a custom keepalived.conf](#using-a-custom-keepalivedconf)) | `false`   |
 
 ### Changing Parameters of a Running Container
@@ -202,6 +204,59 @@ docker rm keepalived
 ```
 
 4. Start the container using the `docker run` command.
+
+## VRRP Authentication
+
+Keepalived supports VRRP authentication to prevent rogue VRRP advertisements. Two authentication methods are available:
+
+- **PASS**: Simple password authentication (recommended for basic security)
+- **AH**: IPSEC Authentication Header (more secure, requires kernel support)
+
+**Important Notes**:
+- Passwords are limited to 8 characters maximum (VRRP protocol limitation)
+- All nodes in the same VRRP group must use the same authentication type and password
+- Authentication is optional but recommended in multi-tenant environments
+- **AH authentication** requires IPSEC Authentication Header support in your kernel (`CONFIG_INET_AH`). This may require loading additional kernel modules (`ah4` for IPv4). If AH authentication fails, check kernel logs with `dmesg`.
+
+### Example with authentication
+
+```bash
+docker run -d \
+    --name=keepalived \
+    --cap-add=NET_ADMIN \
+    --cap-add=NET_RAW \
+    --net host \
+    -e KEEPALIVED_VIRTUAL_IP=10.11.12.99 \
+    -e KEEPALIVED_CHECK_PORT=443 \
+    -e KEEPALIVED_VIRTUAL_MASK=24 \
+    -e KEEPALIVED_VRID=99 \
+    -e KEEPALIVED_AUTH_TYPE=PASS \
+    -e KEEPALIVED_AUTH_PASS=secret12 \
+    shawly/keepalived
+```
+
+### Docker Compose with authentication
+
+```yaml
+version: "3"
+services:
+  keepalived:
+    image: shawly/keepalived
+    environment:
+      TZ: Europe/Berlin
+      KEEPALIVED_VIRTUAL_IP: 172.17.8.150
+      KEEPALIVED_VIRTUAL_MASK: 24
+      KEEPALIVED_CHECK_IP: any
+      KEEPALIVED_CHECK_PORT: 80
+      KEEPALIVED_VRID: 150
+      KEEPALIVED_INTERFACE: eth0
+      KEEPALIVED_AUTH_TYPE: PASS
+      KEEPALIVED_AUTH_PASS: secret12
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+```
 
 ## Using a custom keepalived.conf
 

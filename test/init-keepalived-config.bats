@@ -12,6 +12,13 @@ setup() {
     ip link add dummy0 type dummy || true
     ip addr add 192.168.0.2/24 dev dummy0 || true
     ip link set dummy0 up || true
+
+    # Backup the original keepalived.conf template if not already backed up
+    if [ ! -f /etc/keepalived/keepalived.conf.bak ]; then
+        cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+    fi
+    # Restore the template before each test
+    cp /etc/keepalived/keepalived.conf.bak /etc/keepalived/keepalived.conf
 }
 
 teardown() {
@@ -177,7 +184,7 @@ teardown() {
     run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
     assert_output --partial 'Found interface dummy0 for 192.168.0.123/24'
-    assert grep -Pz 'virtual_ipaddress {.*\n\s*192.168.0.10/24 dev dummy0\n.*}' /etc/keepalived/keepalived.conf
+    assert grep -Pz 'virtual_ipaddress {.*\n\s*192.168.0.123/24 dev dummy0\n.*}' /etc/keepalived/keepalived.conf
 }
 
 @test "init-keepalived-config fails when KEEPALIVED_INTERFACE is set to 'auto' and no interface is found" {
@@ -191,4 +198,158 @@ teardown() {
     run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
 
     assert_output --partial "The KEEPALIVED_VIRTUAL_IP and KEEPALIVED_VIRTUAL_MASK don't match any interfaces on this device."
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_AUTH_TYPE is invalid" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "INVALID" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_AUTH_TYPE environment variable (INVALID) must be either PASS or AH, exiting...'
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_AUTH_TYPE is set but KEEPALIVED_AUTH_PASS is not" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_AUTH_PASS environment variable must be set when KEEPALIVED_AUTH_TYPE is specified, exiting...'
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_AUTH_PASS exceeds 8 characters" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+    echo -n "123456789" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'must be between 1 and 8 characters'
+}
+
+@test "init-keepalived-config includes authentication block with PASS type" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+    echo -n "secret12" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert [ -f /etc/keepalived/keepalived.conf ]
+    assert grep -F 'authentication {' /etc/keepalived/keepalived.conf
+    assert grep -F 'auth_type PASS' /etc/keepalived/keepalived.conf
+    assert grep -F 'auth_pass secret12' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config includes authentication block with AH type" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "AH" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+    echo -n "pass1234" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert [ -f /etc/keepalived/keepalived.conf ]
+    assert grep -F 'authentication {' /etc/keepalived/keepalived.conf
+    assert grep -F 'auth_type AH' /etc/keepalived/keepalived.conf
+    assert grep -F 'auth_pass pass1234' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config omits authentication block when not configured" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert [ -f /etc/keepalived/keepalived.conf ]
+    refute grep -F 'authentication {' /etc/keepalived/keepalived.conf
+    refute grep -F 'auth_type' /etc/keepalived/keepalived.conf
+    refute grep -F 'auth_pass' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config fails when KEEPALIVED_AUTH_PASS is set without KEEPALIVED_AUTH_TYPE" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "secret12" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_AUTH_PASS environment variable is set but KEEPALIVED_AUTH_TYPE is not specified, exiting...'
+}
+
+@test "init-keepalived-config removes authentication marker lines" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+    echo -n "secret12" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    refute grep -F '{{AUTH_BLOCK_START}}' /etc/keepalived/keepalived.conf
+    refute grep -F '{{AUTH_BLOCK_END}}' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config handles auth password with special characters" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+    echo -n "p@s/\&d" > /run/s6/container_environment/KEEPALIVED_AUTH_PASS
+
+    run -0 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert grep -F 'auth_pass p@s/\&d' /etc/keepalived/keepalived.conf
+}
+
+@test "init-keepalived-config validates minimum password length" {
+    echo -n "192.168.0.10" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_IP
+    echo -n "24" > /run/s6/container_environment/KEEPALIVED_VIRTUAL_MASK
+    echo -n "1" > /run/s6/container_environment/KEEPALIVED_VRID
+    echo -n "100" > /run/s6/container_environment/KEEPALIVED_PRIORITY
+    echo -n "dummy0" > /run/s6/container_environment/KEEPALIVED_INTERFACE
+    echo -n "BACKUP" > /run/s6/container_environment/KEEPALIVED_STATE
+    echo -n "PASS" > /run/s6/container_environment/KEEPALIVED_AUTH_TYPE
+
+    run -1 /etc/s6-overlay/s6-rc.d/init-keepalived-config/run
+
+    assert_output --partial 'The KEEPALIVED_AUTH_PASS environment variable must be set when KEEPALIVED_AUTH_TYPE is specified'
 }

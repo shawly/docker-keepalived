@@ -34,6 +34,25 @@ else
         echo "The KEEPALIVED_STATE environment variable (${KEEPALIVED_STATE}) must be either MASTER or BACKUP, exiting..."
         exit 1
     fi
+    # Validate optional authentication settings
+    if [[ -n "${KEEPALIVED_AUTH_PASS}" ]] && [[ -z "${KEEPALIVED_AUTH_TYPE}" ]]; then
+        echo "The KEEPALIVED_AUTH_PASS environment variable is set but KEEPALIVED_AUTH_TYPE is not specified, exiting..."
+        exit 1
+    fi
+    if [[ -n "${KEEPALIVED_AUTH_TYPE}" ]]; then
+        if ! [[ "${KEEPALIVED_AUTH_TYPE}" =~ ^(PASS)|(AH)$ ]]; then
+            echo "The KEEPALIVED_AUTH_TYPE environment variable (${KEEPALIVED_AUTH_TYPE}) must be either PASS or AH, exiting..."
+            exit 1
+        fi
+        if [[ -z "${KEEPALIVED_AUTH_PASS}" ]]; then
+            echo "The KEEPALIVED_AUTH_PASS environment variable must be set when KEEPALIVED_AUTH_TYPE is specified, exiting..."
+            exit 1
+        fi
+        if [[ ${#KEEPALIVED_AUTH_PASS} -lt 1 ]] || [[ ${#KEEPALIVED_AUTH_PASS} -gt 8 ]]; then
+            echo "The KEEPALIVED_AUTH_PASS environment variable must be between 1 and 8 characters (current length: ${#KEEPALIVED_AUTH_PASS}), exiting..."
+            exit 1
+        fi
+    fi
     # Check if given interface is available
     IFS=$'\n' read -r -d '' -a available_interfaces < <(ip -br link show | awk '$1 !~ "lo|vir|docker|veth|br-" { print $1 }' | cut -d '@' -f1 && printf '\0')
     if ! [[ " ${available_interfaces[*]} " =~ " ${KEEPALIVED_INTERFACE} " || "${KEEPALIVED_INTERFACE}" == "auto" ]]; then
@@ -77,8 +96,23 @@ else
     sed -i "s/{{INTERFACE}}/${KEEPALIVED_INTERFACE}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{PRIORITY}}/${KEEPALIVED_PRIORITY}/g" /etc/keepalived/keepalived.conf
     sed -i "s/{{STATE}}/${KEEPALIVED_STATE}/g" /etc/keepalived/keepalived.conf
+
+    # Handle authentication configuration
+    if [[ -n "${KEEPALIVED_AUTH_TYPE}" ]] && [[ -n "${KEEPALIVED_AUTH_PASS}" ]]; then
+        # Escape special characters in password for sed
+        AUTH_PASS_ESCAPED=$(printf '%s\n' "${KEEPALIVED_AUTH_PASS}" | sed 's:[\/&]:\\&:g')
+
+        sed -i "s/{{AUTH_TYPE}}/${KEEPALIVED_AUTH_TYPE}/g" /etc/keepalived/keepalived.conf
+        sed -i "s/{{AUTH_PASS}}/${AUTH_PASS_ESCAPED}/g" /etc/keepalived/keepalived.conf
+        # Remove the marker lines
+        sed -i '/{{AUTH_BLOCK_START}}/d' /etc/keepalived/keepalived.conf
+        sed -i '/{{AUTH_BLOCK_END}}/d' /etc/keepalived/keepalived.conf
+    else
+        # Remove authentication block if not configured
+        sed -i '/{{AUTH_BLOCK_START}}/,/{{AUTH_BLOCK_END}}/d' /etc/keepalived/keepalived.conf
+    fi
 fi
 
 # Finished configuration,
 echo "Displaying resulting /etc/keepalived/keepalived.conf contents..."
-cat /etc/keepalived/keepalived.conf
+sed 's/auth_pass .*/auth_pass [REDACTED]/' /etc/keepalived/keepalived.conf
