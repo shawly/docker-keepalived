@@ -5,10 +5,10 @@
 #
 
 # Set alpine image version
-ARG ALPINE_VERSION="3.21"
+ARG ALPINE_VERSION="3.23"
 
 # Set vars for s6 overlay
-ARG S6_OVERLAY_VERSION="v3.2.0.2"
+ARG S6_OVERLAY_VERSION="v3.2.1.0"
 ARG S6_OVERLAY_BASE_URL="https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}"
 ARG S6_OVERLAY_NOARCH="${S6_OVERLAY_BASE_URL}/s6-overlay-noarch.tar.xz"
 
