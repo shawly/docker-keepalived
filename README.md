@@ -42,7 +42,7 @@ This is a Docker container for [keepalived](https://github.com/acassen/keepalive
 
 <!-- supported tags will be auto updated through workflows! -->
 
-- `edge`, `edge-4a11a97ebb95e3114b560e8cad5731689b114add`, `edge-4a11a97` <!-- edge tag -->
+- `edge`, `edge-ebdb5bf`, `edge-ebdb5bf193dbaac9a527fd5ed11b5af96547f503` <!-- edge tag -->
 - `latest`, `2`, `2.3`, `2.3.1` <!-- latest tag -->
 
 ## Image Variants
